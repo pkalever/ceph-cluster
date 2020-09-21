@@ -1,0 +1,55 @@
+---
+# tasks file for ceph-admin
+
+- name: Generate ssh key
+  command: "ssh-keygen -t rsa -N '' -f ~/.ssh/id_rsa"
+
+- name: Copy ssh id to ceph-nodes
+  command: "sshpass -p 'vagrant' ssh-copy-id -o StrictHostKeyChecking=no vagrant@{{ item }}"
+  with_items:
+    - ceph-node1
+    - ceph-node2
+    - ceph-node3
+
+- name: Install dependency packages
+  become: true
+  become_user: root
+  become_method: sudo
+  yum:
+    name:
+      - ceph-deploy
+      - python-setuptools
+    state: installed
+
+- name: Install ceph stable release
+  command: "ceph-deploy install --release nautilus ceph-node1 ceph-node2 ceph-node3"
+
+- name: Create state directory
+  file:
+    path: /home/vagrant/ceph-cluster
+    state: directory
+
+- name: Create a cluster
+  command: "{{ item }}"
+  with_items:
+    - cd /home/vagrant/ceph-cluster
+    - ceph-deploy new ceph-node1 ceph-node2 ceph-node3
+
+- name: Deploy the initial monitor and gather the keys
+  command: "ceph-deploy mon create-initial"
+
+- name: Copy the conf file and admin key to your admin node and ceph nodes
+  command: "ceph-deploy admin ceph-node1 ceph-node2 ceph-node3"
+
+- name: Deploy a manager daemon
+  command: "ceph-deploy mgr create ceph-node1"
+
+- name: Create metadata servers
+  command: "ceph-deploy mds create ceph-node1 ceph-node2 ceph-node3"
+
+- name: Create OSDs
+  command: "ceph-deploy osd create --data /dev/vdb {{ item }}"
+  with_items:
+    - ceph-node1
+    - ceph-node2
+    - ceph-node3

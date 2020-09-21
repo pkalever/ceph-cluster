@@ -1,0 +1,116 @@
+---
+##############################
+# This playbook is called by Vagrant for initial VM provisioning.
+# Bringup the ceph environment
+
+- hosts: all
+  gather_facts: false
+  become: true
+  any_errors_fatal: true
+  roles:
+    - common
+
+- hosts: ceph-admin
+  gather_facts: false
+  become: true
+  become_user: vagrant
+  become_method: sudo
+  any_errors_fatal: true
+  roles:
+    - ceph-admin
+
+- hosts: ceph_nodes[0]
+  gather_facts: false
+  become: true
+  any_errors_fatal: true
+  tasks:
+    - name: Create ceph rbd pool
+      command: "{{ item }}"
+      with_items:
+        - ceph osd pool create rbd-pool 64
+        - rbd pool init rbd-pool
+    - name: Create ceph file system
+      command: "{{ item }}"
+      with_items:
+        - ceph osd pool create cephfs-datapool 64
+        - ceph osd pool create cephfs-metapool 32
+        - ceph fs new cephfs cephfs-metapool cephfs-datapool
+    - name: Check ceph health status
+      command: ceph --status
+      register: status
+    - debug:
+        msg:
+          - "# ceph --status"
+          - "{{ status.stdout_lines }}"
+
+- hosts: ceph_nodes[0]
+  gather_facts: false
+  become: true
+  any_errors_fatal: true
+  tasks:
+    - name: Creating an image file in rbd block pool and map
+      command: "{{ item }}"
+      with_items:
+        - rbd create --size 1024 rbd-pool/image1 --image-feature layering
+        - rbd device map rbd-pool/image1
+    - name: Check rbd image info
+      command: rbd info rbd-pool/image1
+      register: rbd_info
+    - debug:
+        msg:
+          - "# rbd info rbd-pool/image1"
+          - "{{ rbd_info.stdout_lines }}"
+    - name: create rbd mount directory
+      file:
+        path: "/mnt/rbd"
+        state: directory
+    - name: Format the block device with ext4
+      command: mkfs.ext4 /dev/rbd0
+      register: mkfs
+    - debug:
+        msg:
+          - "# mkfs.ext4 /dev/rbd0"
+          - "{{ mkfs.stdout_lines }}"
+    - name: Mount the /dev/rbd0 to /mnt/rbd/
+      mount:
+        path: /mnt/rbd/
+        src: /dev/rbd0
+        fstype: ext4
+        state: mounted
+    - name: Check the rbd block volume mount status
+      shell: df -Th | grep -e Filesystem -e rbd0
+      register: df_blk
+    - debug:
+        msg:
+          - "# df -Th"
+          - "{{ df_blk.stdout_lines }}"
+    - name: Get the secret
+      shell: "{{ item }}"
+      register: secret
+      with_items:
+        - ceph-authtool -p /etc/ceph/ceph.client.admin.keyring
+    - name: Check ceph fs status
+      command: ceph fs status
+      register: cephfs_status
+    - debug:
+        msg:
+          - "# ceph fs status"
+          - "{{ cephfs_status.stdout_lines }}"
+    - name: create cephfs mount directory
+      file:
+        path: "/mnt/cephfs"
+        state: directory
+    - name: Mount the ceph fs to /mnt/cephfs
+      mount:
+        path: /mnt/cephfs/
+        src: ceph-node3:6789:/
+        fstype: ceph
+        opts: "name=admin,secret={{ secret.results[0].stdout }}"
+        state: mounted
+    - name: Check the ceph fs volume mount status
+      shell: 'df -Th | grep -e Filesystem -e ceph'
+      register: df_fs
+    - debug:
+        msg:
+          - "# df -Th"
+          - "{{ df_fs.stdout_lines }}"

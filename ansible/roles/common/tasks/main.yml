@@ -1,0 +1,75 @@
+---
+# tasks file for common
+
+- name: Upgrade system
+  yum:
+    name: "*"
+    state: latest
+  register: upgrade
+
+- name: Enable PasswordAuthentication in sshd_config
+  lineinfile:
+    name: /etc/ssh/sshd_config
+    regexp: "^PasswordAuthentication no"
+    line: "PasswordAuthentication yes"
+
+# Uncomment this if you comment out the below reboot TASK
+#- name: Restart sshd
+#  command: "systemctl restart sshd"
+
+- name: Reboot if packages were upgraded
+  shell: sleep 2 && systemctl reboot
+  async: 1
+  poll: 0
+  when: upgrade.changed == true
+
+- name: Wait for host to be available after reboot
+  wait_for_connection:
+    delay: 15
+  when: upgrade.changed == true
+
+- name: Stop Firewall
+  systemd:
+    name: firewalld
+    state: stopped
+
+- name: Flush iptables
+  command: "iptables -F"
+
+- name: Add ceph repo file
+  shell: |
+    echo '[ceph]
+    name=Ceph packages for $basearch
+    baseurl=https://download.ceph.com/rpm-nautilus/el7/$basearch
+    enabled=1
+    priority=2
+    gpgcheck=1
+    gpgkey=https://download.ceph.com/keys/release.asc
+
+    [ceph-noarch]
+    name=Ceph noarch packages
+    baseurl=https://download.ceph.com/rpm-nautilus/el7//noarch
+    enabled=1
+    priority=2
+    gpgcheck=1
+    gpgkey=https://download.ceph.com/keys/release.asc
+
+    [ceph-source]
+    name=Ceph source packages
+    baseurl=https://download.ceph.com/rpm-nautilus/el7/SRPMS
+    enabled=0
+    priority=2
+    gpgcheck=1
+    gpgkey=https://download.ceph.com/keys/release.asc' >> /etc/yum.repos.d/ceph.repo
+
+- name: Add ceph repo key
+  rpm_key:
+    key: https://download.ceph.com/keys/release.asc
+    state: present
+
+- name: Add epel repo for extra dependencies
+  yum:
+    name:
+      - "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+      - sshpass
+    state: installed
