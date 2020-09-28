@@ -114,3 +114,22 @@
         msg:
           - "# df -Th"
           - "{{ df_fs.stdout_lines }}"
+    - name: Get cluster ID
+      command: "ceph fsid"
+      register: fsid
+    - name: Get admin key
+      command: "ceph auth print-key client.admin"
+      register: admin_key
+    - name: Get mon ips
+      shell: "ceph mon metadata | grep addrs | cut -d':' -f3"
+      register: mon_ips
+    - debug:
+        msg:
+          - "--------------- Details of ceph cluster ------------"
+          - "* Cluster ID:"
+          - "{{ fsid.stdout_lines }}"
+          - "* Admin Key:"
+          - "{{ admin_key.stdout_lines }}"
+          - "* Mon IPs:"
+          - "{{ mon_ips.stdout_lines }}"
+          - "----------------------------------------------------"
