@@ -10,7 +10,7 @@
   roles:
     - common
 
-- hosts: ceph-admin
+- hosts: ceph_admin[0]
   gather_facts: false
   become: true
   become_user: vagrant
