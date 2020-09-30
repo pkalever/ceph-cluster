@@ -103,7 +103,7 @@
     - name: Mount the ceph fs to /mnt/cephfs
       mount:
         path: /mnt/cephfs/
-        src: ceph-node3:6789:/
+        src: "{{ groups['ceph_nodes'][0] }}:6789:/"
         fstype: ceph
         opts: "name=admin,secret={{ secret.results[0].stdout }}"
         state: mounted

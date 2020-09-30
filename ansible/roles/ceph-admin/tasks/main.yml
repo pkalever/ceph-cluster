@@ -6,10 +6,7 @@
 
 - name: Copy ssh id to ceph-nodes
   command: "sshpass -p 'vagrant' ssh-copy-id -o StrictHostKeyChecking=no vagrant@{{ item }}"
-  with_items:
-    - ceph-node1
-    - ceph-node2
-    - ceph-node3
+  with_items: "{{ groups['ceph_nodes'] }}"
 
 - name: Install dependency packages
   become: true
@@ -22,34 +19,38 @@
     state: installed
 
 - name: Install ceph stable release
-  command: "ceph-deploy install --release nautilus ceph-node1 ceph-node2 ceph-node3"
+  command: "ceph-deploy install --release nautilus {{ groups['ceph_nodes'] | join(' ') }}"
 
 - name: Create state directory
   file:
-    path: /home/vagrant/ceph-cluster
+    path: ~/ceph-cluster
     state: directory
 
 - name: Create a cluster
-  command: "{{ item }}"
+  command: "{{ item }} chdir=~/ceph-cluster"
   with_items:
-    - cd /home/vagrant/ceph-cluster
-    - ceph-deploy new ceph-node1 ceph-node2 ceph-node3
+    - "ceph-deploy new {{ groups['ceph_nodes'] | join(' ') }}"
 
 - name: Deploy the initial monitor and gather the keys
-  command: "ceph-deploy mon create-initial"
+  command: "{{ item }} chdir=~/ceph-cluster"
+  with_items:
+    - "ceph-deploy mon create-initial"
 
 - name: Copy the conf file and admin key to your admin node and ceph nodes
-  command: "ceph-deploy admin ceph-node1 ceph-node2 ceph-node3"
+  command: "{{ item }} chdir=~/ceph-cluster"
+  with_items:
+    - "ceph-deploy admin {{ groups['ceph_nodes'] | join(' ') }}"
 
 - name: Deploy a manager daemon
-  command: "ceph-deploy mgr create ceph-node1"
+  command: "{{ item }} chdir=~/ceph-cluster"
+  with_items:
+    - "ceph-deploy mgr create {{ groups['ceph_nodes'][0] }}"
 
 - name: Create metadata servers
-  command: "ceph-deploy mds create ceph-node1 ceph-node2 ceph-node3"
+  command: "{{ item }} chdir=~/ceph-cluster"
+  with_items:
+    - "ceph-deploy mds create {{ groups['ceph_nodes'] | join(' ') }}"
 
 - name: Create OSDs
-  command: "ceph-deploy osd create --data /dev/vdb {{ item }}"
-  with_items:
-    - ceph-node1
-    - ceph-node2
-    - ceph-node3
+  command: "ceph-deploy osd create --data /dev/vdb {{ item }} chdir=~/ceph-cluster"
+  with_items: "{{ groups['ceph_nodes'] }}"
