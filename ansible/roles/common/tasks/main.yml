@@ -7,6 +7,21 @@
     state: latest
   register: upgrade
 
+- name: Delete loopback-addr to localhost mapping line in /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    regexp: "ceph-node"
+    state: absent
+
+- name: Configure hostname to IP resolution
+  lineinfile:
+    dest: /etc/hosts
+    regexp: '.*{{ item }}$'
+    line: "{{ hostvars[item].ansible_host }} {{item}}"
+    state: present
+  when: hostvars[item].ansible_host is defined
+  with_items: "{{ groups.all }}"
+
 - name: Enable PasswordAuthentication in sshd_config
   lineinfile:
     name: /etc/ssh/sshd_config
