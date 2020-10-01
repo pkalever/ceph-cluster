@@ -25,9 +25,10 @@ Vagrant.configure("2") do |config|
   # disable default sync dir
   config.vm.synced_folder ".", "/vagrant", disabled: true
 
-  config.vm.define "ceph-admin" do |node|
-    node.vm.hostname = "ceph-admin"
-  end
+  # Uncomment the below lines if you want dedicated ceph-admin node
+  #config.vm.define "ceph-admin" do |node|
+  #  node.vm.hostname = "ceph-admin"
+  #end
 
   (1..CEPH_NODES).each do |i|
     config.vm.define "ceph-node#{i}" do |node|
@@ -43,7 +44,9 @@ Vagrant.configure("2") do |config|
         node.vm.provision :ansible do |ansible|
           ansible.groups = {
             "ceph_nodes" => (1..CEPH_NODES).map {|j| "ceph-node#{j}"},
-            "ceph_admin" => ["ceph-admin"]
+            # If you want a dedicated ceph-admin node,
+            # modify 's/ceph-node1/ceph-admin/' at below line
+            "ceph_admin" => ["ceph-node1"]
           }
           # Disable default limit to connect to all the machines
           ansible.limit = "all"
