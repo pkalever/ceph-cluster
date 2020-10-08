@@ -28,11 +28,15 @@ Vagrant.configure("2") do |config|
   # Uncomment the below lines if you want dedicated ceph-admin node
   #config.vm.define "ceph-admin" do |node|
   #  node.vm.hostname = "ceph-admin"
+  #  localoctet = 100+CEPH_NODES+1
+  #  node.vm.network :private_network, ip: "192.168.50.#{localoctet}"
   #end
 
   (1..CEPH_NODES).each do |i|
     config.vm.define "ceph-node#{i}" do |node|
       node.vm.hostname = "ceph-node#{i}"
+      localoctet = 100+i
+      node.vm.network :private_network, ip: "192.168.50.#{localoctet}"
       node.vm.provider "libvirt" do |provider|
         for _ in 0..DISKS-1 do
           provider.storage :file, :size => DISKSIZE
