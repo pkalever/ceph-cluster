@@ -23,6 +23,8 @@ Make below changes to your Vagrantfile for a dedicated ceph admin node, else by 
 Uncomment these lines
 #config.vm.define "ceph-admin" do |node|
 #  node.vm.hostname = "ceph-admin"
+#  localoctet = 100+CEPH_NODES+1
+#  node.vm.network :private_network, ip: "192.168.50.#{localoctet}"
 #end
 
 Also modify 's/ceph-node1/ceph-admin/' at below line
