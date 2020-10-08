@@ -7,6 +7,17 @@
     state: latest
   register: upgrade
 
+- name: Reboot if packages were upgraded
+  shell: sleep 2 && systemctl reboot
+  async: 1
+  poll: 0
+  when: upgrade.changed == true
+
+- name: Wait for host to be available after reboot
+  wait_for_connection:
+    delay: 15
+  when: upgrade.changed == true
+
 - name: Delete loopback-addr to localhost mapping line in /etc/hosts
   lineinfile:
     path: /etc/hosts
@@ -28,25 +39,17 @@
     regexp: "^PasswordAuthentication no"
     line: "PasswordAuthentication yes"
 
-# Uncomment this if you comment out the below reboot TASK
-#- name: Restart sshd
-#  command: "systemctl restart sshd"
-
-- name: Reboot if packages were upgraded
-  shell: sleep 2 && systemctl reboot
-  async: 1
-  poll: 0
-  when: upgrade.changed == true
-
-- name: Wait for host to be available after reboot
-  wait_for_connection:
-    delay: 15
-  when: upgrade.changed == true
+- name: Reload sshd config
+  systemd:
+    name: sshd
+    state: reloaded
+    enabled: yes
 
 - name: Stop Firewall
   systemd:
     name: firewalld
     state: stopped
+    enabled: no
 
 - name: Flush iptables
   command: "iptables -F"
