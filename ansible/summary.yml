@@ -1,0 +1,45 @@
+---
+##############################
+# help get ceph environment summary
+
+- hosts: all
+  gather_facts: false
+  become: true
+  any_errors_fatal: true
+  remote_user: vagrant
+  vars:
+    ansible_ssh_private_key_file: .vagrant/machines/ceph-node1/libvirt/private_key
+  tasks:
+    - name: Get cluster ID
+      command: "ceph fsid"
+      register: fsid
+    - name: Get mon ips
+      shell: "ceph mon metadata | grep addrs | cut -d':' -f3"
+      register: mon_ips
+    - name: Get the secret
+      command: "ceph-authtool -p /etc/ceph/ceph.client.admin.keyring"
+      register: secret
+    - debug:
+        msg:
+          - "--------------- CEPH CLUSTER SUMMARY  ------------"
+          - "❇ Cluster ID: "
+          - "    {{ fsid.stdout_lines[0] }} "
+          - "❇ Mon IPs: "
+          - "    {{ mon_ips.stdout_lines }} "
+          - "❇ Admin Key:"
+          - "    {{ secret.stdout_lines[0] }} "
+          - ""
+          - "❇ Rbd pool name: "
+          - "    rbd-pool "
+          - "❇ To mount the precreated rbd image, run: "
+          - "    # vagrant ssh <ceph-node1|...> "
+          - "    # sudo rbd device map rbd-pool/image1 "
+          - "    # sudo mkfs.ext4 /dev/rbd0 "
+          - "    # sudo mount /dev/rbd0 /mnt/rbd "
+          - ""
+          - "❇ Ceph FS name: "
+          - "    cephfs "
+          - "❇ To mount the ceph fs, run:"
+          - "    # vagrant ssh <ceph-node1|...> "
+          - "    # sudo mount -t ceph ceph-node1:6789:/ /mnt/cephfs -o name=admin,secret='{{ secret.stdout_lines[0] }}' "
+          - "----------------------------------------------------"
