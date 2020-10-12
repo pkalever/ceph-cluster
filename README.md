@@ -32,3 +32,10 @@ Uncomment these lines
 Also modify 's/ceph-node1/ceph-admin/' at below line
 "ceph_admin" => ["ceph-node1"]
 </pre>
+
+#### Get summary:
+---
+Here is an easy way to get the cluster details anytime
+<pre>
+# ansible-playbook --ssh-common-args='-o StrictHostKeyChecking=no' -i 192.168.50.101, ansible/summary.yml
+</pre>
