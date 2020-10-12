@@ -11,8 +11,10 @@ $ vagrant up
 
 #### The goal:
 ---
-* Initiate a `rbd block pool`, create an image, then map it and finally mount at '/mnt/rbd' path.
-* Create `ceph file system` and mount it at '/mnt/cephfs' path.
+* Initiate a `rbd block pool`, create an image
+    * In the summary, provide instructions to map image and mount the device
+* Create `ceph file system`
+    * In the summary, provide clear instructions to mount the CephFs volume
 
 
 #### Dedicated ceph-admin node:
