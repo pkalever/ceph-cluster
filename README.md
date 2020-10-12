@@ -37,5 +37,7 @@ Also modify 's/ceph-node1/ceph-admin/' at below line
 ---
 Here is an easy way to get the cluster details anytime
 <pre>
-# ansible-playbook --ssh-common-args='-o StrictHostKeyChecking=no' -i 192.168.50.101, ansible/summary.yml
+# ansible-playbook -i 192.168.50.101, ansible/summary.yml
 </pre>
+
+Note: `192.168.50.101` is the static IP assigned to first ceph-node VM, no need to tweak it.
