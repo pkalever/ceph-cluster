@@ -9,7 +9,7 @@
   remote_user: vagrant
   vars:
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-    ansible_ssh_private_key_file: .vagrant/machines/ceph-node2/libvirt/private_key
+    ansible_ssh_private_key_file: .vagrant/machines/ceph-node1/libvirt/private_key
   tasks:
     - name: Get cluster ID
       command: "ceph fsid"
